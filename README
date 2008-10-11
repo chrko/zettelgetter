@@ -1,0 +1,3 @@
+1) cp config.pm.example config.pm
+2) URZ-Account in config.pm eintragen zwecks Moodle-Login, Pfad einstellen wo die Zettel landen sollen
+3) ./get.pl

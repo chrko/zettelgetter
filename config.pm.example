@@ -1,0 +1,12 @@
+package config;
+
+our $urz_user = 'hans_mustermann';
+our $urz_pass = 'geheim';
+our %urls = (
+		info1 => 'http://elearning.uni-heidelberg.de/mod/resource/view.php?id=37918',
+		ana1 => 'http://www.mathi.uni-heidelberg.de/~theiders/Analysis-1/zettel.html',
+		la1 => 'http://www.mathi.uni-heidelberg.de/~banagl/teaching.htm'
+	);
+our $target = '/home/michael/Uni/S1/Uebungen/';
+
+1
