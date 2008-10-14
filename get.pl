@@ -6,7 +6,20 @@ use warnings;
 use WWW::Mechanize;
 use File::Basename;
 use Data::Dumper;
+use Digest::MD5;
 use config;
+
+my $params = shift;
+my $update_mode = 0;
+
+if ($params) {
+	if ($params eq 'update' or $params eq '-u' or $params eq '--update') {
+		$update_mode = 1;
+	} elsif ($params eq 'help' or $params eq '-h' or $params eq '--help') {
+		print "Syntax: ./get.pl [update]\n";
+		exit;
+	}
+}
 
 print "Logging into moodle...\n";
 
@@ -21,6 +34,16 @@ $agent->submit_form(
 			    password => $config::urz_pass, }
 	);
 
+sub get_digest {
+	my $file = shift;
+	open(FILE, $file) or die "Can't open $file";
+	binmode(FILE);
+	my $digest = Digest::MD5->new->addfile(*FILE)->hexdigest;
+	close(FILE);
+
+	return $digest;
+}
+
 for my $name (keys %config::urls) {
 	mkdir $config::target.$name unless (-e $config::target.$name);
 	$agent->get($config::urls{$name});
@@ -29,12 +52,19 @@ for my $name (keys %config::urls) {
 	for my $link ($agent->links()) {
 		next unless $link->url() =~ /\.pdf$/;
 		my $fn = basename $link->url();
-		if (-e $config::target.$name."/".$fn) {
-			# TODO: Update
+		my $target = $config::target.$name."/".$fn;
+		if (-e $target) {
+			# Only update files if started in update mode
+			next unless $update_mode;
+
+			my $old_digest = get_digest($target);
+			$agent->get($link->url(), ':content_file' => $target);
+			my $new_digest = get_digest($target);
+			print "\nPDF has changed! Check $target!\n\n" if ($old_digest ne $new_digest);
 		} else {
 			# New one, let's download
 			print "Downloading new PDF $fn...\n";
-			$agent->get($link->url(), ':content_file' => $config::target.$name."/".$fn);
+			$agent->get($link->url_abs()->abs, ':content_file' => $target);
 		}
 	}
 }
