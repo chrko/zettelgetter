@@ -5,6 +5,7 @@ use strict;
 use warnings;
 use WWW::Mechanize;
 use File::Basename;
+use File::Path;
 use Data::Dumper;
 use Digest::MD5;
 use config;
@@ -45,7 +46,7 @@ sub get_digest {
 }
 
 for my $name (keys %config::urls) {
-	mkdir $config::target.$name unless (-e $config::target.$name);
+	mkpath($config::target.$name, {mode => 0755}) unless (-e $config::target.$name);
 	$agent->get($config::urls{$name});
 
 	# Check all PDFs
