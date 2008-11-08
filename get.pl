@@ -28,12 +28,16 @@ my $agent = WWW::Mechanize->new();
 # Get loginpage
 $agent->get('https://elearning.uni-heidelberg.de/login/index.php');
 
-# Submit loginform
-$agent->submit_form(
-		form_number => 2,
-		fields => { username => $config::urz_user,
-			    password => $config::urz_pass, }
-	);
+if (!$agent->form_number(2)) {
+	print "WARNING: Could not login - Either moodle on elearning.uni-heidelberg.de is broken or they changed something in the login process.\n";
+} else {
+	# Submit loginform
+	$agent->submit_form(
+			form_number => 2,
+			fields => { username => $config::urz_user,
+				    password => $config::urz_pass, }
+		);
+}
 
 sub get_digest {
 	my $file = shift;
