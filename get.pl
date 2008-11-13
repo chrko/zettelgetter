@@ -55,7 +55,7 @@ for my $name (keys %config::urls) {
 
 	# Check all PDFs
 	for my $link ($agent->links()) {
-		next unless $link->url() =~ /\.pdf$/;
+		next unless $link->url() =~ /\.(pdf|ps|txt|cpp|zip|tar|bz2)$/;
 		my $fn = basename $link->url();
 		my $target = $config::target.$name."/".$fn;
 		if (-e $target) {
