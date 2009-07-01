@@ -65,10 +65,10 @@ for my $name (keys %config::urls) {
 			my $old_digest = get_digest($target);
 			$agent->get($link->url(), ':content_file' => $target);
 			my $new_digest = get_digest($target);
-			print "\nPDF has changed! Check $target!\n\n" if ($old_digest ne $new_digest);
+			print "\nDocument has changed! Check $target!\n\n" if ($old_digest ne $new_digest);
 		} else {
 			# New one, let's download
-			print "Downloading new PDF $fn...\n";
+			print "Downloading new Document $fn...\n";
 			$agent->get($link->url_abs()->abs, ':content_file' => $target);
 		}
 	}
