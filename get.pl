@@ -55,6 +55,7 @@ sub get_url {
 	my $url = shift;
 	my $target_path = shift;
 	my $recurse = shift;
+	my @additional_urls = ();
 
 	print "$name\n$url\n$target_path\n$recurse\n";
 
@@ -62,6 +63,9 @@ sub get_url {
 
 	# Check all PDFs
 	for my $link ($agent->links()) {
+		my $abs_link = $link->url_abs()->abs;
+
+		push @additional_urls, $abs_link if $abs_link =~ /resource\/view\.php/;
 		next unless $link->url() =~ /\.(pdf|ps|txt|cpp|zip|tar|bz2)$/;
 		my $fn = basename $link->url();
 		my $target = $target_path."/".$fn;
@@ -71,16 +75,19 @@ sub get_url {
 			next unless $update_mode;
 
 			my $old_digest = get_digest($target);
-			$agent->get($link->url(), ':content_file' => $target);
+			$agent->get($abs_link, ':content_file' => $target);
 			my $new_digest = get_digest($target);
 			print "\nDocument has changed! Check $target!\n\n" if ($old_digest ne $new_digest);
 		} else {
 			# New one, let's download
 			print "Downloading new Document $fn...\n";
-			$agent->get($link->url_abs()->abs, ':content_file' => $target);
+			$agent->get($abs_link, ':content_file' => $target);
 		}
 	}
-        get_url($name, "http://elearning.uni-heidelberg.de/mod/resource/view.php?id=58253", $target_path, 0) if $recurse;
+	for my $link (@additional_urls){
+		print "Additional: $link\n";
+	        get_url($name, $link, $target_path, 0) if $recurse;
+	}
 }
 
 while ((my $name, my $url) = each %config::urls) {
