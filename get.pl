@@ -49,15 +49,23 @@ sub get_digest {
 	return $digest;
 }
 
-for my $name (keys %config::urls) {
-	mkpath($config::target.$name, {mode => 0755}) unless (-e $config::target.$name);
-	$agent->get($config::urls{$name});
+
+sub get_url {
+	my $name = shift;
+	my $url = shift;
+	my $target_path = shift;
+	my $recurse = shift;
+
+	print "$name\n$url\n$target_path\n$recurse\n";
+
+	$agent->get($url);
 
 	# Check all PDFs
 	for my $link ($agent->links()) {
 		next unless $link->url() =~ /\.(pdf|ps|txt|cpp|zip|tar|bz2)$/;
 		my $fn = basename $link->url();
-		my $target = $config::target.$name."/".$fn;
+		my $target = $target_path."/".$fn;
+		print $target."\n";
 		if (-e $target) {
 			# Only update files if started in update mode
 			next unless $update_mode;
@@ -72,6 +80,15 @@ for my $name (keys %config::urls) {
 			$agent->get($link->url_abs()->abs, ':content_file' => $target);
 		}
 	}
+        get_url($name, "http://elearning.uni-heidelberg.de/mod/resource/view.php?id=58253", $target_path, 0) if $recurse;
+}
+
+while ((my $name, my $url) = each %config::urls) {
+	my $target_path = $config::target.$name;
+
+	mkpath($target_path, {mode => 0755}) unless (-e $config::target.$name);
+
+	get_url($name, $url, $target_path, 1);
 }
 
 print "Finished.\n";
