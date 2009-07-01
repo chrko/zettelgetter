@@ -49,7 +49,6 @@ sub get_digest {
 	return $digest;
 }
 
-
 sub get_url {
 	my $name = shift;
 	my $url = shift;
@@ -57,35 +56,33 @@ sub get_url {
 	my $recurse = shift;
 	my @additional_urls = ();
 
-	print "$name\n$url\n$target_path\n$recurse\n";
-
 	$agent->get($url);
 
 	# Check all PDFs
 	for my $link ($agent->links()) {
 		my $abs_link = $link->url_abs()->abs;
-
 		push @additional_urls, $abs_link if $abs_link =~ /resource\/view\.php/;
 		next unless $link->url() =~ /\.(pdf|ps|txt|cpp|zip|tar|bz2)$/;
 		my $fn = basename $link->url();
 		my $target = $target_path."/".$fn;
-		print $target."\n";
 		if (-e $target) {
 			# Only update files if started in update mode
 			next unless $update_mode;
 
 			my $old_digest = get_digest($target);
-			$agent->get($abs_link, ':content_file' => $target);
-			my $new_digest = get_digest($target);
-			print "\nDocument has changed! Check $target!\n\n" if ($old_digest ne $new_digest);
+			eval { $agent->get($abs_link, ':content_file' => $target); };
+			unless ($@) {
+				my $new_digest = get_digest($target);
+				print "\nDocument has changed! Check $target!\n\n" if ($old_digest ne $new_digest);
+			}
 		} else {
 			# New one, let's download
 			print "Downloading new Document $fn...\n";
-			$agent->get($abs_link, ':content_file' => $target);
+			eval { $agent->get($abs_link, ':content_file' => $target); };
 		}
 	}
+
 	for my $link (@additional_urls){
-		print "Additional: $link\n";
 	        get_url($name, $link, $target_path, 0) if $recurse;
 	}
 }
