@@ -70,15 +70,21 @@ sub get_url {
 			next unless $update_mode;
 
 			my $old_digest = get_digest($target);
+			# need to sandbox the call, else it kills the process on fetch error 
 			eval { $agent->get($abs_link, ':content_file' => $target); };
 			unless ($@) {
 				my $new_digest = get_digest($target);
 				print "\nDocument has changed! Check $target!\n\n" if ($old_digest ne $new_digest);
+			} else {
+				print "Couldn't load $fn\n";
 			}
 		} else {
 			# New one, let's download
 			print "Downloading new Document $fn...\n";
+
+			# need to sandbox the call, else it kills the process on fetch error 
 			eval { $agent->get($abs_link, ':content_file' => $target); };
+			print "Couldn't load $fn\n" if $@;
 		}
 	}
 
