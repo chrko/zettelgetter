@@ -3,6 +3,7 @@
 
 use strict;
 use warnings;
+use Net::INET6Glue;
 use WWW::Mechanize;
 use File::Basename;
 use File::Path;
