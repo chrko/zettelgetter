@@ -51,10 +51,7 @@ sub get_digest {
 }
 
 sub get_url {
-	my $name = shift;
-	my $url = shift;
-	my $target_path = shift;
-	my $recurse = shift;
+	my ($name, $url, $target_path, $recurse) = @_;
 	my @additional_urls = ();
 
 	$agent->get($url);
@@ -89,15 +86,15 @@ sub get_url {
 		}
 	}
 
-	for my $link (@additional_urls){
-	        get_url($name, $link, $target_path, 0) if $recurse;
-	}
+	return unless $recurse;
+
+	get_url($name, $_, $target_path, 0) for (@additional_urls);
 }
 
-while ((my $name, my $url) = each %config::urls) {
-	my $target_path = $config::target.$name;
+while (my ($name, $url) = each %config::urls) {
+	my $target_path = $config::target . $name;
 
-	mkpath($target_path, {mode => 0755}) unless (-e $config::target.$name);
+	mkpath($target_path, { mode => 0755 }) unless (-e $config::target . $name);
 
 	get_url($name, $url, $target_path, 1);
 }
