@@ -11,6 +11,7 @@ use File::Path;
 use Data::Dumper;
 use Digest::MD5;
 use IO::All;
+use List::MoreUtils qw(any);
 use config;
 
 my $params = shift;
@@ -25,21 +26,29 @@ if ($params) {
     }
 }
 
-print "Logging into moodle...\n";
-
 my $agent = WWW::Mechanize->new();
-# Get loginpage
-$agent->get('https://elearning.uni-heidelberg.de/login/index.php');
 
-if (!$agent->form_number(2)) {
-    print "WARNING: Could not login - Either moodle on elearning.uni-heidelberg.de is broken or they changed something in the login process.\n";
+if (any { /elearning/ } values %config::urls) {
+    print "Logging into moodle...\n";
+
+    # Get loginpage
+    $agent->get('https://elearning.uni-heidelberg.de/login/index.php');
+
+    if (!$agent->form_number(2)) {
+        print "WARNING: Could not login - Either moodle on elearning.uni-heidelberg.de" .
+              "is broken or they changed something in the login process.\n";
+    } else {
+        # Submit loginform
+        $agent->submit_form(
+                form_number => 2,
+                fields => {
+                    username => $config::urz_user,
+                    password => $config::urz_pass,
+                }
+            );
+    }
 } else {
-    # Submit loginform
-    $agent->submit_form(
-            form_number => 2,
-            fields => { username => $config::urz_user,
-                    password => $config::urz_pass, }
-        );
+    print "Skipping moodle login, no URLs configured which use moodle.\n";
 }
 
 sub get_digest {
@@ -61,7 +70,7 @@ sub get_url {
         push @additional_urls, $abs_link if $abs_link =~ /resource\/view\.php/;
         next unless $link->url() =~ /\.(pdf|ps|txt|cpp|zip|tar|bz2)$/;
         my $fn = basename $link->url();
-        my $target = $target_path."/".$fn;
+        my $target = "$target_path/$fn";
         if (-e $target) {
             # Only update files if started in update mode
             next unless $update_mode;
