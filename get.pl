@@ -10,6 +10,7 @@ use File::Basename;
 use File::Path;
 use Data::Dumper;
 use Digest::MD5;
+use IO::All;
 use config;
 
 my $params = shift;
@@ -43,12 +44,9 @@ if (!$agent->form_number(2)) {
 
 sub get_digest {
     my $file = shift;
-    open(FILE, $file) or die "Can't open $file";
-    binmode(FILE);
-    my $digest = Digest::MD5->new->addfile(*FILE)->hexdigest;
-    close(FILE);
 
-    return $digest;
+    my $contents = io($file)->binary->all;
+    return Digest::MD5->new->add($contents)->hexdigest;
 }
 
 sub get_url {
