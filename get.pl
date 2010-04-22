@@ -2,6 +2,22 @@
 # vim:ts=4:sw=4:expandtab
 # Hint: You need libcrypt-ssleay-perl for this to work with SSL (necessary)
 
+# We subclass WWW::Mechanize to overwrite redirect_ok (to decide whether we
+# follow moodle’s redirect or not -- we want to follow local redirects but
+# avoid redirects to external pages).
+package ZGAgent;
+use base 'WWW::Mechanize';
+
+sub redirect_ok {
+    my ($self, $req, $resp) = @_;
+    my $path = $req->uri()->path();
+    # DEBUG
+    #print "Deciding about redirect to URL " . $req->uri() . " (path = " . $req->uri()->path() . "\n";
+    return ($path =~ /\.(pdf|ps|txt|cpp|zip|tar|bz2)$/);
+}
+
+package main;
+
 use strict;
 use warnings;
 use Net::INET6Glue;
@@ -26,7 +42,7 @@ if ($params) {
     }
 }
 
-my $agent = WWW::Mechanize->new();
+my $agent = ZGAgent->new();
 
 if (any { /elearning/ } values %config::urls) {
     print "Logging into moodle...\n";
@@ -58,9 +74,48 @@ sub get_digest {
     return Digest::MD5->new->add($contents)->hexdigest;
 }
 
+sub download_file {
+    my ($url, $fn, $target) = @_;
+
+    if (-e $target) {
+        # Only update files if started in update mode
+        return unless $update_mode;
+
+        my $old_digest = get_digest($target);
+        # need to sandbox the call, else it kills the process on fetch error
+        eval { $agent->get($url, ':content_file' => $target); };
+        unless ($@) {
+            my $new_digest = get_digest($target);
+            print "\nDocument has changed! Check $target!\n\n" if ($old_digest ne $new_digest);
+        } else {
+            print "Couldn't load $fn\n";
+        }
+    } else {
+        # New one, let's download
+        print "Downloading new Document $fn...\n";
+
+        # need to sandbox the call, else it kills the process on fetch error
+        eval { $agent->get($url, ':content_file' => $target); };
+        print "Couldn't load $fn\n" if $@;
+    }
+}
+
 sub get_url {
     my ($name, $url, $target_path, $recurse) = @_;
     my @additional_urls = ();
+
+    if (!$recurse) {
+        # first HEAD the URL to see what mime type it has
+        $agent->head($url);
+        if (!($agent->response->header('content-type') =~ /^text/) && $agent->response->is_success) {
+            my $fn = $agent->response->filename;
+            # DEBUG
+            #print "successfully headed $url, filename is " . $agent->response->filename . "\n";
+
+            download_file($url, $fn, "$target_path/$fn");
+        }
+        return;
+    }
 
     $agent->get($url);
 
@@ -69,29 +124,9 @@ sub get_url {
         my $abs_link = $link->url_abs()->abs;
         push @additional_urls, $abs_link if $abs_link =~ /resource\/view\.php/;
         next unless $link->url() =~ /\.(pdf|ps|txt|cpp|zip|tar|bz2)$/;
+
         my $fn = basename $link->url();
-        my $target = "$target_path/$fn";
-        if (-e $target) {
-            # Only update files if started in update mode
-            next unless $update_mode;
-
-            my $old_digest = get_digest($target);
-            # need to sandbox the call, else it kills the process on fetch error
-            eval { $agent->get($abs_link, ':content_file' => $target); };
-            unless ($@) {
-                my $new_digest = get_digest($target);
-                print "\nDocument has changed! Check $target!\n\n" if ($old_digest ne $new_digest);
-            } else {
-                print "Couldn't load $fn\n";
-            }
-        } else {
-            # New one, let's download
-            print "Downloading new Document $fn...\n";
-
-            # need to sandbox the call, else it kills the process on fetch error
-            eval { $agent->get($abs_link, ':content_file' => $target); };
-            print "Couldn't load $fn\n" if $@;
-        }
+        download_file($abs_link, $fn, "$target_path/$fn");
     }
 
     return unless $recurse;
