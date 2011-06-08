@@ -113,6 +113,8 @@ sub get_url {
             #print "successfully headed $url, filename is " . $agent->response->filename . "\n";
 
             download_file($url, $fn, "$target_path/$fn");
+        } else {
+            get_url($name, $url, $target_path, 1);
         }
         return;
     }
