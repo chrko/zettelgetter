@@ -124,7 +124,7 @@ sub get_url {
     # Check all PDFs
     for my $link ($agent->links()) {
         my $abs_link = $link->url_abs()->abs;
-        push @additional_urls, $abs_link if $abs_link =~ /resource\/view\.php/;
+        push @additional_urls, "$abs_link&inpopup=true" if $abs_link =~ /resource\/view\.php/;
         next unless $link->url() =~ /\.(pdf|ps|txt|cpp|zip|tar|bz2)$/;
 
         my $fn = basename $link->url();
