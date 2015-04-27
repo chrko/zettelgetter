@@ -48,15 +48,15 @@ if (any { /elearning/ } values %config::urls) {
     print "Logging into moodle...\n";
 
     # Get loginpage
-    $agent->get('https://elearning.uni-heidelberg.de/login/index.php');
+    $agent->get('https://elearning2.uni-heidelberg.de/login/index.php');
 
-    if (!$agent->form_number(2)) {
+    if (!$agent->form_number(1)) {
         print "WARNING: Could not login - Either moodle on elearning.uni-heidelberg.de" .
               "is broken or they changed something in the login process.\n";
     } else {
         # Submit loginform
         $agent->submit_form(
-                form_number => 2,
+                form_number => 1,
                 fields => {
                     username => $config::urz_user,
                     password => $config::urz_pass,
@@ -124,7 +124,7 @@ sub get_url {
     # Check all PDFs
     for my $link ($agent->links()) {
         my $abs_link = $link->url_abs()->abs;
-        push @additional_urls, "$abs_link&inpopup=true" if $abs_link =~ /resource\/view\.php/;
+        push @additional_urls, "$abs_link&inpopup=true" if $abs_link =~ /resource\/view\.php/ && !($abs_link =~ /id=152/ || $abs_link =~ /id=38602/);
         next unless $link->url() =~ /\.(pdf|ps|txt|cpp|zip|tar|bz2)$/;
 
         my $fn = basename $link->url();
